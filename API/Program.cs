@@ -13,7 +13,9 @@ var categorias = new List<Categoria>
 };
 
 app.MapGet("/", () => "Hello World!");
-// Back-end de Categoria
+
+#region Categoria
+
 app.MapPut("/categorias/{id:int}", (int id, [FromBody] Categoria atualizarCategoria) =>
 {
     var validarResultado = new List<ValidationResult>();
@@ -38,5 +40,6 @@ app.MapPut("/categorias/{id:int}", (int id, [FromBody] Categoria atualizarCatego
 
     return Results.NoContent();
 });
+#endregion
 
 app.Run();
