@@ -21,9 +21,34 @@ var clientes = new List<Cliente>
 
 app.MapGet("/", () => "Hello World!");
 
-#region Categoria
+#region Categoria - Criar
+app.MapPost("/categorias/criar", (Categoria novaCategoria) =>
+{
+    var validarResultado = new List<ValidationResult>();
+    var validarContexto = new ValidationContext(novaCategoria);
+    
+    if (!Validator.TryValidateObject(novaCategoria, validarContexto, validarResultado, true))
+    {
+        var error = validarResultado.FirstOrDefault(r => r.MemberNames.Contains("Descricao"))?.ErrorMessage 
+                    ?? validarResultado.FirstOrDefault()?.ErrorMessage;
+        
+        return Results.BadRequest(error);
+    }
 
-app.MapPut("/categorias/{id:int}", (int id, [FromBody] Categoria atualizarCategoria) =>
+    novaCategoria.Id = categorias.Count > 0 ? categorias.Max(c => c.Id) + 1 : 1;
+    categorias.Add(novaCategoria);
+    return Results.Created($"/categorias/{novaCategoria.Id}", novaCategoria);
+});
+#endregion
+
+#region Categoria - Listar
+app.MapGet("/categorias/listar", () => Results.Ok(categorias))
+    .WithName("GetCategorias")
+    .WithTags("Categorias");
+#endregion
+
+#region Categoria - Atualizar
+app.MapPut("/categorias/atualizar/{id:int}", (int id, [FromBody] Categoria atualizarCategoria) =>
 {
     var validarResultado = new List<ValidationResult>();
     var validarContexto = new ValidationContext(atualizarCategoria);
@@ -45,6 +70,20 @@ app.MapPut("/categorias/{id:int}", (int id, [FromBody] Categoria atualizarCatego
     categoria.Nome = atualizarCategoria.Nome;
     categoria.Descricao = atualizarCategoria.Descricao;
 
+    return Results.NoContent();
+});
+#endregion
+
+#region Categoria - Eliminar
+app.MapDelete("/categorias/eliminar/{id:int}", (int id) =>
+{
+    var categoria = categorias.FirstOrDefault(c => c.Id == id);
+    if (categoria == null)
+    {
+        return Results.NotFound();
+    }
+
+    categorias.Remove(categoria);
     return Results.NoContent();
 });
 #endregion
