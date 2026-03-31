@@ -36,10 +36,41 @@ var produtos = new List<Produto>
 
 app.MapGet("/", () => "Hello World!");
 
+<<<<<<< HEAD
 //CRUD Categoria
 
 #region Categoria
 app.MapPut("/categorias/{id:int}", (int id, [FromBody] Categoria atualizarCategoria) =>
+=======
+#region Categoria - Criar
+app.MapPost("/categorias/criar", (Categoria novaCategoria) =>
+{
+    var validarResultado = new List<ValidationResult>();
+    var validarContexto = new ValidationContext(novaCategoria);
+    
+    if (!Validator.TryValidateObject(novaCategoria, validarContexto, validarResultado, true))
+    {
+        var error = validarResultado.FirstOrDefault(r => r.MemberNames.Contains("Descricao"))?.ErrorMessage 
+                    ?? validarResultado.FirstOrDefault()?.ErrorMessage;
+        
+        return Results.BadRequest(error);
+    }
+
+    novaCategoria.Id = categorias.Count > 0 ? categorias.Max(c => c.Id) + 1 : 1;
+    categorias.Add(novaCategoria);
+    return Results.Created($"/categorias/{novaCategoria.Id}", novaCategoria);
+});
+#endregion
+
+#region Categoria - Listar
+app.MapGet("/categorias/listar", () => Results.Ok(categorias))
+    .WithName("GetCategorias")
+    .WithTags("Categorias");
+#endregion
+
+#region Categoria - Atualizar
+app.MapPut("/categorias/atualizar/{id:int}", (int id, [FromBody] Categoria atualizarCategoria) =>
+>>>>>>> a24022c5798379a0a5a666b6c34b0c489e3dfcf1
 {
     var validarResultado = new List<ValidationResult>();
     var validarContexto = new ValidationContext(atualizarCategoria);
@@ -65,9 +96,27 @@ app.MapPut("/categorias/{id:int}", (int id, [FromBody] Categoria atualizarCatego
 });
 #endregion
 
+<<<<<<< HEAD
 //CRUD Cliente
 
 #region Cliente - Criar
+=======
+#region Categoria - Eliminar
+app.MapDelete("/categorias/eliminar/{id:int}", (int id) =>
+{
+    var categoria = categorias.FirstOrDefault(c => c.Id == id);
+    if (categoria == null)
+    {
+        return Results.NotFound();
+    }
+
+    categorias.Remove(categoria);
+    return Results.NoContent();
+});
+#endregion
+
+#region Cliente - criar
+>>>>>>> a24022c5798379a0a5a666b6c34b0c489e3dfcf1
 app.MapPost("/clientes/criar", (Cliente novoCliente) =>
 {
     var validarResultado = new List<ValidationResult>();
