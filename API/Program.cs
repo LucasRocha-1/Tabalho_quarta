@@ -36,12 +36,8 @@ var produtos = new List<Produto>
 
 app.MapGet("/", () => "Hello World!");
 
-<<<<<<< HEAD
 //CRUD Categoria
 
-#region Categoria
-app.MapPut("/categorias/{id:int}", (int id, [FromBody] Categoria atualizarCategoria) =>
-=======
 #region Categoria - Criar
 app.MapPost("/categorias/criar", (Categoria novaCategoria) =>
 {
@@ -70,7 +66,6 @@ app.MapGet("/categorias/listar", () => Results.Ok(categorias))
 
 #region Categoria - Atualizar
 app.MapPut("/categorias/atualizar/{id:int}", (int id, [FromBody] Categoria atualizarCategoria) =>
->>>>>>> a24022c5798379a0a5a666b6c34b0c489e3dfcf1
 {
     var validarResultado = new List<ValidationResult>();
     var validarContexto = new ValidationContext(atualizarCategoria);
@@ -96,11 +91,6 @@ app.MapPut("/categorias/atualizar/{id:int}", (int id, [FromBody] Categoria atual
 });
 #endregion
 
-<<<<<<< HEAD
-//CRUD Cliente
-
-#region Cliente - Criar
-=======
 #region Categoria - Eliminar
 app.MapDelete("/categorias/eliminar/{id:int}", (int id) =>
 {
@@ -115,8 +105,7 @@ app.MapDelete("/categorias/eliminar/{id:int}", (int id) =>
 });
 #endregion
 
-#region Cliente - criar
->>>>>>> a24022c5798379a0a5a666b6c34b0c489e3dfcf1
+#region Cliente - Criar
 app.MapPost("/clientes/criar", (Cliente novoCliente) =>
 {
     var validarResultado = new List<ValidationResult>();
@@ -252,6 +241,5 @@ app.MapDelete("/produtos/eliminar/{id:int}", (int id) =>
     return Results.NoContent();
 });
 #endregion
-
 
 app.Run();
