@@ -1,245 +1,199 @@
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 using API.Models;
 
-//Integrantes do Grupo:
-//Enzo Xavier
-//Enzo Hashimoto
-//Lucas Vargas
-//Vinicius Menarim
+// Integrantes do Grupo:
+// Enzo Xavier, Enzo Hashimoto, Lucas Vargas, Vinicius Menarim
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 1. Configurar Banco de Dados (Em memória, nomeado "trabalho")
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=trabalho.db"));
+
+// 2. Configurar CORS (Obrigatório)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PermitirTudo", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// 3. Configurar Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
-// Dados locais mock para categorias
-var categorias = new List<Categoria>
-{
-    new Categoria { Id = 1, Nome = "Sneakers Exclusivos", Descricao = "Tênis raros" },
-    new Categoria { Id = 2, Nome = "Vestuário", Descricao = "Roupas de marca" }
-};
+// Ativar CORS e Swagger
+app.UseCors("PermitirTudo");
+app.UseSwagger();
+app.UseSwaggerUI();
 
-// Dados locais mock para clientes
-var clientes = new List<Cliente>
-{
-    new Cliente { Id = 1, Nome = "João Silva", Email = "joao.silva@example.com" },
-    new Cliente { Id = 2, Nome = "Maria Oliveira", Email = "maria.oliveira@example.com" }
-};
+app.MapGet("/", () => "API Rodando! Acesse /swagger para ver a documentação.");
 
-// Dados locais mock para produtos
-var produtos = new List<Produto>
-{
-    new Produto { Id = 1, Nome = "Nike Air Force 1", Preco = 750.99, Estoque = 10 },
-    new Produto { Id = 2, Nome = "Calça Baggy Streetwear", Preco = 200.00, Estoque = 25},
-    new Produto { Id = 3, Nome = "Boné Vans", Preco = 159.99, Estoque = 5}
-};
+// ================= CRUD CATEGORIA =================
 
-
-app.MapGet("/", () => "Hello World!");
-
-//CRUD Categoria
-
-#region Categoria - Criar
-app.MapPost("/categorias/criar", (Categoria novaCategoria) =>
+app.MapPost("/categorias/criar", async (Categoria novaCategoria, AppDbContext db) =>
 {
     var validarResultado = new List<ValidationResult>();
     var validarContexto = new ValidationContext(novaCategoria);
     
     if (!Validator.TryValidateObject(novaCategoria, validarContexto, validarResultado, true))
     {
-        var error = validarResultado.FirstOrDefault(r => r.MemberNames.Contains("Descricao"))?.ErrorMessage 
-                    ?? validarResultado.FirstOrDefault()?.ErrorMessage;
-        
+        var error = validarResultado.FirstOrDefault()?.ErrorMessage;
         return Results.BadRequest(error);
     }
 
-    novaCategoria.Id = categorias.Count > 0 ? categorias.Max(c => c.Id) + 1 : 1;
-    categorias.Add(novaCategoria);
+    db.Categorias.Add(novaCategoria);
+    await db.SaveChangesAsync();
     return Results.Created($"/categorias/{novaCategoria.Id}", novaCategoria);
 });
-#endregion
 
-#region Categoria - Listar
-app.MapGet("/categorias/listar", () => Results.Ok(categorias))
-    .WithName("GetCategorias")
+app.MapGet("/categorias/listar", async (AppDbContext db) => 
+    Results.Ok(await db.Categorias.ToListAsync()))
     .WithTags("Categorias");
-#endregion
 
-#region Categoria - Atualizar
-app.MapPut("/categorias/atualizar/{id:int}", (int id, [FromBody] Categoria atualizarCategoria) =>
+app.MapPut("/categorias/atualizar/{id:int}", async (int id, [FromBody] Categoria atualizarCategoria, AppDbContext db) =>
 {
     var validarResultado = new List<ValidationResult>();
     var validarContexto = new ValidationContext(atualizarCategoria);
 
     if (!Validator.TryValidateObject(atualizarCategoria, validarContexto, validarResultado, true))
     {
-        var error = validarResultado.FirstOrDefault(r => r.MemberNames.Contains("Descricao"))?.ErrorMessage
-                    ?? validarResultado.FirstOrDefault()?.ErrorMessage;
-
+        var error = validarResultado.FirstOrDefault()?.ErrorMessage;
         return Results.BadRequest(error);
     }
 
-    var categoria = categorias.FirstOrDefault(c => c.Id == id);
-    if (categoria == null)
-    {
-        return Results.NotFound();
-    }
+    var categoria = await db.Categorias.FindAsync(id);
+    if (categoria == null) return Results.NotFound();
 
     categoria.Nome = atualizarCategoria.Nome;
     categoria.Descricao = atualizarCategoria.Descricao;
 
+    await db.SaveChangesAsync();
     return Results.NoContent();
 });
-#endregion
 
-#region Categoria - Eliminar
-app.MapDelete("/categorias/eliminar/{id:int}", (int id) =>
+app.MapDelete("/categorias/eliminar/{id:int}", async (int id, AppDbContext db) =>
 {
-    var categoria = categorias.FirstOrDefault(c => c.Id == id);
-    if (categoria == null)
-    {
-        return Results.NotFound();
-    }
+    var categoria = await db.Categorias.FindAsync(id);
+    if (categoria == null) return Results.NotFound();
 
-    categorias.Remove(categoria);
+    db.Categorias.Remove(categoria);
+    await db.SaveChangesAsync();
     return Results.NoContent();
 });
-#endregion
 
-#region Cliente - Criar
-app.MapPost("/clientes/criar", (Cliente novoCliente) =>
+// ================= CRUD CLIENTE =================
+
+app.MapPost("/clientes/criar", async (Cliente novoCliente, AppDbContext db) =>
 {
     var validarResultado = new List<ValidationResult>();
     var validarContexto = new ValidationContext(novoCliente);
 
     if (!Validator.TryValidateObject(novoCliente, validarContexto, validarResultado, true))
     {
-        var error = validarResultado.FirstOrDefault(r => r.MemberNames.Contains("Email"))?.ErrorMessage
-                    ?? validarResultado.FirstOrDefault()?.ErrorMessage;
-
+        var error = validarResultado.FirstOrDefault()?.ErrorMessage;
         return Results.BadRequest(error);
     }
 
-    novoCliente.Id = clientes.Count > 0 ? clientes.Max(c => c.Id) + 1 : 1;
-    clientes.Add(novoCliente);
+    db.Clientes.Add(novoCliente);
+    await db.SaveChangesAsync();
     return Results.Created($"/clientes/{novoCliente.Id}", novoCliente);
 });
-#endregion
 
-#region Cliente - Atualizar
-app.MapPut("/clientes/atualizar/{id:int}", (int id, [FromBody] Cliente atualizarCliente) =>
+app.MapGet("/clientes/listar", async (AppDbContext db) => 
+    Results.Ok(await db.Clientes.ToListAsync()))
+    .WithTags("Clientes");
+
+app.MapPut("/clientes/atualizar/{id:int}", async (int id, [FromBody] Cliente atualizarCliente, AppDbContext db) =>
 {
     var validarResultado = new List<ValidationResult>();
     var validarContexto = new ValidationContext(atualizarCliente);
 
     if (!Validator.TryValidateObject(atualizarCliente, validarContexto, validarResultado, true))
     {
-        var error = validarResultado.FirstOrDefault(r => r.MemberNames.Contains("Email"))?.ErrorMessage
-                    ?? validarResultado.FirstOrDefault()?.ErrorMessage;
-
+        var error = validarResultado.FirstOrDefault()?.ErrorMessage;
         return Results.BadRequest(error);
     }
 
-    var cliente = clientes.FirstOrDefault(c => c.Id == id);
-    if (cliente == null)
-    {
-        return Results.NotFound();
-    }
+    var cliente = await db.Clientes.FindAsync(id);
+    if (cliente == null) return Results.NotFound();
 
     cliente.Nome = atualizarCliente.Nome;
     cliente.Email = atualizarCliente.Email;
 
+    await db.SaveChangesAsync();
     return Results.NoContent();
 });
-#endregion
 
-#region Cliente - Listar
-app.MapGet("/clientes/listar", () => Results.Ok(clientes))
-    .WithName("GetClientes")
-    .WithTags("Clientes");
-#endregion
-
-#region Cliente - Eliminar
-app.MapDelete("/clientes/eliminar/{id:int}", (int id) =>
+app.MapDelete("/clientes/eliminar/{id:int}", async (int id, AppDbContext db) =>
 {
-    var cliente = clientes.FirstOrDefault(c => c.Id == id);
-    if (cliente == null)
-    {
-        return Results.NotFound();
-    }
+    var cliente = await db.Clientes.FindAsync(id);
+    if (cliente == null) return Results.NotFound();
 
-    clientes.Remove(cliente);
+    db.Clientes.Remove(cliente);
+    await db.SaveChangesAsync();
     return Results.NoContent();
 });
-#endregion
 
-//CRUD Produto
+// ================= CRUD PRODUTO =================
 
-#region Produto - Criar
-app.MapPost("/produtos/criar", (Produto novoProduto) =>
+app.MapPost("/produtos/criar", async (Produto novoProduto, AppDbContext db) =>
 {
     var validarResultado = new List<ValidationResult>();
     var validarContexto = new ValidationContext(novoProduto);
 
     if (!Validator.TryValidateObject(novoProduto, validarContexto, validarResultado, true))
     {
-        var error = validarResultado.FirstOrDefault(r => r.MemberNames.Contains("Preco"))?.ErrorMessage
-                    ?? validarResultado.FirstOrDefault()?.ErrorMessage;
-
+        var error = validarResultado.FirstOrDefault()?.ErrorMessage;
         return Results.BadRequest(error);
     }
 
-    novoProduto.Id = produtos.Count > 0 ? produtos.Max(p => p.Id) + 1 : 1;
-    produtos.Add(novoProduto);
+    db.Produtos.Add(novoProduto);
+    await db.SaveChangesAsync();
     return Results.Created($"/produtos/{novoProduto.Id}", novoProduto);
 });
-#endregion
 
-#region Produto - Atualizar
-app.MapPut("/produtos/atualizar/{id:int}", (int id, [FromBody] Produto atualizarProduto) =>
+app.MapGet("/produtos/listar", async (AppDbContext db) => 
+    Results.Ok(await db.Produtos.ToListAsync()))
+    .WithTags("Produtos");
+
+app.MapPut("/produtos/atualizar/{id:int}", async (int id, [FromBody] Produto atualizarProduto, AppDbContext db) =>
 {
     var validarResultado = new List<ValidationResult>();
     var validarContexto = new ValidationContext(atualizarProduto);
 
     if (!Validator.TryValidateObject(atualizarProduto, validarContexto, validarResultado, true))
     {
-        var error = validarResultado.FirstOrDefault(r => r.MemberNames.Contains("Preco"))?.ErrorMessage
-                    ?? validarResultado.FirstOrDefault()?.ErrorMessage;
-
+        var error = validarResultado.FirstOrDefault()?.ErrorMessage;
         return Results.BadRequest(error);
     }
 
-    var produto = produtos.FirstOrDefault(p => p.Id == id);
-    if (produto == null)
-    {
-        return Results.NotFound();
-    }
+    var produto = await db.Produtos.FindAsync(id);
+    if (produto == null) return Results.NotFound();
 
     produto.Nome = atualizarProduto.Nome;
     produto.Preco = atualizarProduto.Preco;
     produto.Estoque = atualizarProduto.Estoque;
 
+    await db.SaveChangesAsync();
     return Results.NoContent();
 });
-#endregion
 
-#region Produto - Listar
-app.MapGet("/produtos/listar", () => Results.Ok(produtos))
-    .WithName("GetProdutos")
-    .WithTags("Produtos");
-#endregion
-
-#region Produto - Eliminar
-app.MapDelete("/produtos/eliminar/{id:int}", (int id) =>
+app.MapDelete("/produtos/eliminar/{id:int}", async (int id, AppDbContext db) =>
 {
-    var produto = produtos.FirstOrDefault(p => p.Id == id);
-    if (produto == null)
-    {
-        return Results.NotFound();
-    }
+    var produto = await db.Produtos.FindAsync(id);
+    if (produto == null) return Results.NotFound();
 
-    produtos.Remove(produto);
+    db.Produtos.Remove(produto);
+    await db.SaveChangesAsync();
     return Results.NoContent();
 });
-#endregion
 
 app.Run();

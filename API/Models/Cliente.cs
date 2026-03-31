@@ -8,10 +8,9 @@ public class Cliente
 
     [Required(ErrorMessage = "O nome é obrigatório.")]
     [StringLength(80, MinimumLength = 5, ErrorMessage = "O nome deve ter entre 5 e 80 caracteres.")]
-    public string Nome { get; set; }
+    public string Nome { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "O Email é obrigatório.")]
     [EmailAddress(ErrorMessage = "O Email deve ser válido.")]
-    public string Email { get; set; }
-
+    public string Email { get; set; } = string.Empty;
 }
