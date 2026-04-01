@@ -8,11 +8,11 @@ using API.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configurar Banco de Dados (Em memória, nomeado "trabalho")
+// Configuração Banco de Dados 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=trabalho.db"));
 
-// 2. Configurar CORS (Obrigatório)
+// Configuração CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirTudo", policy =>
@@ -23,7 +23,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 3. Configurar Swagger
+// Configuração Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
